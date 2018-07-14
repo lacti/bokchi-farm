@@ -4491,7 +4491,7 @@ serve-static@1.13.2:
     send "0.16.2"
 
 serverless-base-library@../lib:
-  version "1.0.0"
+  version "0.0.3"
   optionalDependencies:
     aws-sdk "^2.275.1"
 

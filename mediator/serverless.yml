@@ -18,12 +18,47 @@ plugins:
   - serverless-offline
 
 functions:
-  hello:
-    handler: src/handler.hello
+  act:
+    handler: src/handler.act
     events:
       - http:
-          path: hello
+          path: act/{key}
+          method: post
+          request:
+            parameters:
+              paths:
+                key: true
+          cors: true
+    environment:
+      TASK_QUEUE: ${env:TASK_QUEUE}
+  see:
+    handler: src/handler.see
+    events:
+      - http:
+          path: see/{key}
           method: get
+          request:
+            parameters:
+              paths:
+                key: true
+          cors: true
+    environment:
+      FARM_TABLE: ${env:FARM_TABLE}
+      AGE_TABLE: ${env:AGE_TABLE}
+  tick:
+    handler: src/handler.tick
+    events:
+      - http:
+          path: tick
+          method: post
+    environment:
+      TASK_QUEUE: ${env:TASK_QUEUE}
+      FARM_TABLE: ${env:FARM_TABLE}
+      AGE_TABLE: ${env:AGE_TABLE}
+#  ticker:
+#    handler: src/handler.ticker
+#    events:
+#      - schedule: rate(1 minutes)
 
 resources:
   Resources:
@@ -31,3 +66,29 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${env:TASK_QUEUE}
+    farmTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${env:FARM_TABLE}
+        AttributeDefinitions:
+          - AttributeName: UserId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: UserId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 15
+          WriteCapacityUnits: 5
+    ageTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${env:AGE_TABLE}
+        AttributeDefinitions:
+          - AttributeName: GameId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: GameId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 15
+          WriteCapacityUnits: 5
