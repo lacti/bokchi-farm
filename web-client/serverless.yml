@@ -1,0 +1,14 @@
+service: bf-web-client
+provider:
+  name: aws
+  stage: prod
+  region: ap-northeast-2
+
+plugins:
+  - serverless-finch
+
+custom:
+  client:
+    bucketName: bf.lacti.me
+    distributionFolder: build
+

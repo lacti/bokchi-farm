@@ -11,6 +11,12 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "upload": "sls client deploy --no-confirm",
+    "deploy": "yarn build && yarn upload"
+  },
+  "devDependencies": {
+    "serverless": "^1.27.2",
+    "serverless-finch": "^2.1.2"
   }
 }

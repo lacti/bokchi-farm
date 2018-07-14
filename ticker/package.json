@@ -1,10 +1,10 @@
 {
-  "name": "mediator",
+  "name": "ticker",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "src/handler.js",
   "license": "MIT",
   "scripts": {
-    "start": "cross-env SLS_DEBUG=* sls offline start --host 0.0.0.0 --port 12000",
+    "start": "cross-env SLS_DEBUG=* sls offline start --host 0.0.0.0 --port 12001",
     "deploy": "cross-env SLS_DEBUG=* sls deploy --verbose"
   },
   "dependencies": {
