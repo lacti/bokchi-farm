@@ -15,17 +15,16 @@ module.exports.load = async messages => {
   // Please make me to process them in bulk.
   try {
     for (const message of messages) {
-      if (!games[message.gameId]) {
-        games[message.gameId] = await aws.getDynamoDbItem(
-          process.env.GAME_TABLE,
-          { GameId: message.gameId },
-        );
+      const { gameId, userId } = message;
+      if (!games[gameId]) {
+        games[gameId] = await aws.getDynamoDbItem(process.env.GAME_TABLE, {
+          GameId: gameId,
+        });
       }
-      if (!farms[message.userId]) {
-        farms[message.userId] = await aws.getDynamoDbItem(
-          process.env.FARM_TABLE,
-          { UserId: message.userId },
-        );
+      if (!farms[userId]) {
+        farms[userId] = await aws.getDynamoDbItem(process.env.FARM_TABLE, {
+          UserId: userId,
+        });
       }
     }
     for (const game of Object.values(games)) {
@@ -45,31 +44,12 @@ module.exports.load = async messages => {
 };
 
 /**
- * @param {string} userId
- * @return { Promise.<{UserId: string, GameId: string, Money: number, Ground: [{X: number, Y: number, State: 'Green' | 'Fire', Value: number}]}> } farm
- */
-const fetchFarm = async userId => {
-  if (farms[userId]) {
-    return farms[userId];
-  }
-  const farm = await aws.getDynamoDbItem(process.env.FARM_TABLE, {
-    UserId: userId,
-  });
-  logger.stupid(`farm[${userId}]`, farm);
-  if (!farm) {
-    return;
-  }
-  farms[userId] = farm;
-  return farm;
-};
-
-/**
  * @param { {UserId: string, GameId: string, Money: number, Ground: [{X: number, Y: number, State: 'Green' | 'Fire', Value: number}]} } farm
  * @param { {type: 'green', x: number, y: number, value: number}} } action
  */
 const actGreen = (farm, action) => {
   for (const each of farm.Ground) {
-    if (each.X === action.pos.x && each.Y === action.pos.y) {
+    if (each.X === action.x && each.Y === action.y) {
       each.State = 'Green';
       each.Value = action.value;
       break;
@@ -127,7 +107,7 @@ const actFire = (farm, action) => {
  */
 const actWater = (farm, action) => {
   for (const each of farm.Ground) {
-    if (each.X === action.pos.x && each.Y === action.pos.y) {
+    if (each.X === action.x && each.Y === action.y) {
       if (each.State === 'Fire') {
         if (each.value <= action.value) {
           each.State = 'Green';
@@ -153,20 +133,29 @@ const acts = {
  */
 module.exports.process = message => {
   try {
-    logger.stupid(`message`, message);
-    if (!message.type) {
-      return;
-    }
-    const farm = fetchFarm(message.userId);
-    if (!farm) {
+    if (!message) {
+      logger.verbose(`Invalid message`);
       return;
     }
 
-    const act = acts[message.type];
-    if (!act) {
+    logger.verbose(`message: ${JSON.stringify(message, null, 2)}`);
+    const { userId, action } = message;
+    if (!action) {
+      logger.info(`No action for message: ${JSON.stringify(message)}`);
       return;
     }
-    act(farm, message.action);
+    const farm = farms[userId];
+    if (!farm) {
+      logger.info(`No farm for message: ${JSON.stringify(message)}`);
+      return;
+    }
+
+    const act = acts[action.type];
+    if (!act) {
+      logger.info(`No act for message: ${JSON.stringify(message)}`);
+      return;
+    }
+    act(farm, action);
   } catch (err) {
     logger.warn(err);
   }
@@ -203,11 +192,11 @@ const spreadFire = (farm, x, y) => {
 const tickOne = farm => {
   let money = farm.Money;
   for (const each of farm.Ground) {
-    logger.info(JSON.stringify(each));
+    logger.stupid(`each tile on tick`, each);
     switch (each.State) {
       case 'Green':
         money += Math.pow(10, each.Value);
-        logger.info(money);
+        logger.stupid(`money`, money);
         break;
       case 'Fire':
         money -= 5 * (each.Value + 1);

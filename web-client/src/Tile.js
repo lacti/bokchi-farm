@@ -2,18 +2,23 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 class Tile extends React.Component {
-  constructor() {
+  constructor(props) {
     super();
+    const { value } = props;
     this.state = {
       power: 0,
+      value,
     };
   }
   onClick = () => {
-    const { power } = this.state;
+    const { power, value } = this.state;
     if (power === 9) {
-      const { x, y, state, value, onUpgrade, onWater } = this.props;
+      const { x, y, state, onUpgrade, onWater } = this.props;
       if (state === 'Green') {
         onUpgrade(x, y, value + 1);
+        this.setState({
+          value: value + 1,
+        });
       } else {
         onWater(x, y);
       }
@@ -29,8 +34,8 @@ class Tile extends React.Component {
   };
 
   render() {
-    const { state, value } = this.props;
-    const { power } = this.state;
+    const { state } = this.props;
+    const { value, power } = this.state;
     return (
       <span className={state} onClick={this.onClick}>
         {value} <sub>{power}</sub>

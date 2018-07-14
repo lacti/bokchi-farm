@@ -111,9 +111,10 @@ module.exports.tick = middleware(async () => {
 
   // update each state
   const { games, farms } = logic.getState();
+  const newAge = new Date().getTime();
   for (const gameId of Object.keys(games)) {
     const game = games[gameId];
-    game.AgeValue = new Date().getTime();
+    game.AgeValue = newAge;
 
     const copy = Object.assign({}, game);
     delete copy['GameId'];
@@ -136,7 +137,6 @@ module.exports.tick = middleware(async () => {
   }
 
   return {
-    games,
-    farms,
+    age: newAge,
   };
 });
