@@ -1,5 +1,5 @@
 module.exports = {
-  maxX: 10,
-  maxY: 10,
+  maxX: 4,
+  maxY: 4,
   fireCost: 100,
 };

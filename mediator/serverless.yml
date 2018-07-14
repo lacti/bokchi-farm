@@ -28,6 +28,8 @@ functions:
             parameters:
               paths:
                 gameId: true
+    environment:
+      GAME_TABLE: ${env:GAME_TABLE}
   start:
     handler: src/handler.start
     events:
@@ -41,6 +43,7 @@ functions:
           cors: true
     environment:
       GAME_TABLE: ${env:GAME_TABLE}
+      FARM_TABLE: ${env:FARM_TABLE}
   act:
     handler: src/handler.act
     events:
@@ -60,7 +63,7 @@ functions:
     events:
       - http:
           path: see/{gameId}/{userId}
-          method: get
+          method: post
           request:
             parameters:
               paths:

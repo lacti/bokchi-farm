@@ -9,9 +9,9 @@
 
 .App-header {
   background-color: #222;
-  height: 150px;
   padding: 20px;
   color: white;
+  margin-bottom: 1em;
 }
 
 .App-title {
@@ -23,6 +23,30 @@
 }
 
 @keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.Green,
+.Fire {
+  display: inline-block;
+  text-align: center;
+  vertical-align: middle;
+  padding: 2em;
+}
+
+.Green {
+  background-color: green;
+}
+.Fire {
+  background-color: red;
+}
+
+* {
+  user-select: none;
+  outline: none;
 }
