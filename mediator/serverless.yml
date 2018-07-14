@@ -18,16 +18,40 @@ plugins:
   - serverless-offline
 
 functions:
-  act:
-    handler: src/handler.act
+  init:
+    handler: src/handler.init
     events:
       - http:
-          path: act/{key}
+          path: init/{gameId}
           method: post
           request:
             parameters:
               paths:
-                key: true
+                gameId: true
+  start:
+    handler: src/handler.start
+    events:
+      - http:
+          path: start/{gameId}
+          method: post
+          request:
+            parameters:
+              paths:
+                gameId: true
+          cors: true
+    environment:
+      GAME_TABLE: ${env:GAME_TABLE}
+  act:
+    handler: src/handler.act
+    events:
+      - http:
+          path: act/{gameId}/{userId}
+          method: post
+          request:
+            parameters:
+              paths:
+                gameId: true
+                userId: true
           cors: true
     environment:
       TASK_QUEUE: ${env:TASK_QUEUE}
@@ -35,16 +59,17 @@ functions:
     handler: src/handler.see
     events:
       - http:
-          path: see/{key}
+          path: see/{gameId}/{userId}
           method: get
           request:
             parameters:
               paths:
-                key: true
+                gameId: true
+                userId: true
           cors: true
     environment:
+      GAME_TABLE: ${env:GAME_TABLE}
       FARM_TABLE: ${env:FARM_TABLE}
-      AGE_TABLE: ${env:AGE_TABLE}
   tick:
     handler: src/handler.tick
     events:
@@ -53,8 +78,8 @@ functions:
           method: post
     environment:
       TASK_QUEUE: ${env:TASK_QUEUE}
+      GAME_TABLE: ${env:GAME_TABLE}
       FARM_TABLE: ${env:FARM_TABLE}
-      AGE_TABLE: ${env:AGE_TABLE}
 #  ticker:
 #    handler: src/handler.ticker
 #    events:
@@ -66,6 +91,19 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${env:TASK_QUEUE}
+    gameTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${env:GAME_TABLE}
+        AttributeDefinitions:
+          - AttributeName: GameId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: GameId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 15
+          WriteCapacityUnits: 5
     farmTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -75,19 +113,6 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: UserId
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 15
-          WriteCapacityUnits: 5
-    ageTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${env:AGE_TABLE}
-        AttributeDefinitions:
-          - AttributeName: GameId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: GameId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 15

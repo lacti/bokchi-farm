@@ -8,7 +8,8 @@
     "deploy": "cross-env SLS_DEBUG=* sls deploy --verbose"
   },
   "dependencies": {
-    "serverless-base-library": "../lib"
+    "serverless-base-library": "../lib",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "cross-env": "^5.2.0",
