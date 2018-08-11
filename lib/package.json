@@ -1,9 +1,0 @@
-{
-  "name": "serverless-base-library",
-  "version": "0.0.7",
-  "main": "src/index.js",
-  "license": "MIT",
-  "optionalDependencies": {
-    "aws-sdk": "^2.275.1"
-  }
-}
