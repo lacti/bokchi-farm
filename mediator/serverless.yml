@@ -6,14 +6,15 @@ provider:
   stage: prod
   region: ap-northeast-2
   iamRoleStatements:
-    - Effect: "Allow"
+    - Effect: 'Allow'
       Action:
-        - "s3:*"
-        - "sqs:*"
-        - "dynamodb:*"
-      Resource: "*" 
+        - 's3:*'
+        - 'sqs:*'
+        - 'dynamodb:*'
+      Resource: '*'
 
 plugins:
+  - serverless-plugin-typescript
   - serverless-plugin-existing-s3
   - serverless-offline
 

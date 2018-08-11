@@ -1,38 +1,46 @@
-const { aws, getLogger } = require('serverless-base-library');
-const { maxX, maxY, fireCost } = require('./constant');
+import { getLogger, SimpleAWS } from 'serverless-simple-middleware';
+import { fireCost, maxX, maxY } from './constant';
+import {
+  ActionHandler,
+  ActionMessage,
+  ActionType,
+  Farm,
+  Farms,
+  FireAction,
+  Game,
+  Games,
+  GreenAction,
+  TileState,
+  WaterAction,
+} from './model';
+
 const logger = getLogger(__filename);
 
-/** @type { {[GameId: string]: {GameId: string, AgeValue: number, UserIds: string[]}} } */
-const games = {};
+const games: Games = {};
+const farms: Farms = {};
 
-/** @type { {[UserId: string]: {UserId: string, GameId: string, Money: number, Ground: [{X: number, Y: number, State: 'Green' | 'Fire', Value: number}]}} } */
-const farms = {};
-
-/**
- * @param { [{gameId: string, userId: string, action: {}}] } messages
- */
-module.exports.load = async messages => {
+export const load = async (aws: SimpleAWS, messages: ActionMessage[]) => {
   // Please make me to process them in bulk.
   try {
     for (const message of messages) {
       const { gameId, userId } = message;
       if (!games[gameId]) {
-        games[gameId] = await aws.getDynamoDbItem(process.env.GAME_TABLE, {
+        games[gameId] = (await aws.getDynamoDbItem(process.env.GAME_TABLE, {
           GameId: gameId,
-        });
+        })) as Game;
       }
       if (!farms[userId]) {
-        farms[userId] = await aws.getDynamoDbItem(process.env.FARM_TABLE, {
+        farms[userId] = (await aws.getDynamoDbItem(process.env.FARM_TABLE, {
           UserId: userId,
-        });
+        })) as Farm;
       }
     }
     for (const game of Object.values(games)) {
       for (const userId of game.UserIds) {
         if (!farms[userId]) {
-          farms[userId] = await aws.getDynamoDbItem(process.env.FARM_TABLE, {
+          farms[userId] = (await aws.getDynamoDbItem(process.env.FARM_TABLE, {
             UserId: userId,
-          });
+          })) as Farm;
         }
       }
     }
@@ -43,25 +51,23 @@ module.exports.load = async messages => {
   logger.stupid(`farms`, farms);
 };
 
-/**
- * @param { {UserId: string, GameId: string, Money: number, Ground: [{X: number, Y: number, State: 'Green' | 'Fire', Value: number}]} } farm
- * @param { {type: 'green', x: number, y: number, value: number}} } action
- */
-const actGreen = (farm, action) => {
+const actGreen: ActionHandler<ActionType.Green> = (
+  farm: Farm,
+  action: GreenAction,
+) => {
   for (const each of farm.Ground) {
     if (each.X === action.x && each.Y === action.y) {
-      each.State = 'Green';
+      each.State = TileState.Green;
       each.Value = action.value;
       break;
     }
   }
 };
 
-/**
- * @param { {UserId: string, GameId: string, Money: number, Ground: [{X: number, Y: number, State: 'Green' | 'Fire', Value: number}]} } farm
- * @param { {type: 'fire', x: number, y: number, value: number}} } action
- */
-const actFire = (farm, action) => {
+const actFire: ActionHandler<ActionType.Fire> = (
+  farm: Farm,
+  action: FireAction,
+) => {
   const gameId = farm.GameId;
   const attackerId = farm.UserId;
 
@@ -79,7 +85,7 @@ const actFire = (farm, action) => {
     logger.info(`No users in game[${game.GameId}]`);
     return;
   }
-  const randomInt = max => Math.floor(Math.random() * max);
+  const randomInt = (max: number) => Math.floor(Math.random() * max);
   let targetUserId = game.UserIds[randomInt(game.UserIds.length)];
   while (targetUserId === attackerId) {
     targetUserId = game.UserIds[randomInt(game.UserIds.length)];
@@ -94,26 +100,25 @@ const actFire = (farm, action) => {
   const randomPosY = randomInt(maxY);
   for (const each of targetFarm.Ground) {
     if (each.X === randomPosX && each.Y === randomPosY) {
-      each.State = 'Fire';
+      each.State = TileState.Fire;
       each.Value = action.value;
       return;
     }
   }
 };
 
-/**
- * @param { {UserId: string, GameId: string, Money: number, Ground: [{X: number, Y: number, State: 'Green' | 'Fire', Value: number}]} } farm
- * @param { {type: 'water', x: number, y: number, value: number}} } action
- */
-const actWater = (farm, action) => {
+const actWater: ActionHandler<ActionType.Water> = (
+  farm: Farm,
+  action: WaterAction,
+) => {
   for (const each of farm.Ground) {
     if (each.X === action.x && each.Y === action.y) {
       if (each.State === 'Fire') {
-        if (each.value <= action.value) {
-          each.State = 'Green';
+        if (each.Value <= action.value) {
+          each.State = TileState.Green;
           each.Value = 0;
         } else {
-          each.State = 'Fire';
+          each.State = TileState.Fire;
           each.Value -= action.value;
         }
       }
@@ -123,15 +128,20 @@ const actWater = (farm, action) => {
 };
 
 const acts = {
-  green: actGreen,
-  fire: actFire,
-  water: actWater,
+  [ActionType.Green]: actGreen,
+  [ActionType.Fire]: actFire,
+  [ActionType.Water]: actWater,
 };
 
-/**
- * @param { {gameId: string, userId: string, action: {type: 'green' | 'fire' | 'water', x: number, y: number, value: number}} } message
- */
-module.exports.process = message => {
+const getAct = <T extends ActionType>(type: T): ActionHandler<T> => {
+  const act = acts[type] as ActionHandler<T>;
+  if (!act) {
+    throw new Error(`No act for type: ${type}`);
+  }
+  return act;
+};
+
+export const execute = (message: ActionMessage) => {
   try {
     if (!message) {
       logger.verbose(`Invalid message`);
@@ -150,25 +160,15 @@ module.exports.process = message => {
       return;
     }
 
-    const act = acts[action.type];
-    if (!act) {
-      logger.info(`No act for message: ${JSON.stringify(message)}`);
-      return;
-    }
-    act(farm, action);
+    getAct(action.type)(farm, action);
   } catch (err) {
     logger.warn(err);
   }
 };
 
-module.exports.getState = () => ({ games, farms });
+export const getState = () => ({ games, farms });
 
-/**
- * @param { {UserId: string, GameId: string, Money: number, Ground: [{X: number, Y: number, State: 'Green' | 'Fire', Value: number}]} } farm
- * @param {number} x
- * @param {number} y
- */
-const spreadFire = (farm, x, y) => {
+const spreadFire = (farm: Farm, x: number, y: number) => {
   if (x < 0 || y < 0 || x >= maxX || y >= maxY) {
     return;
   }
@@ -178,7 +178,7 @@ const spreadFire = (farm, x, y) => {
   }
   switch (tile.State) {
     case 'Green':
-      tile.State = 'Fire';
+      tile.State = TileState.Fire;
       tile.Value = 0;
       break;
     case 'Fire':
@@ -186,10 +186,8 @@ const spreadFire = (farm, x, y) => {
       break;
   }
 };
-/**
- * @param { {UserId: string, GameId: string, Money: number, Ground: [{X: number, Y: number, State: 'Green' | 'Fire', Value: number}]} } farm
- */
-const tickOne = farm => {
+
+const tickOne = (farm: Farm) => {
   let money = farm.Money;
   for (const each of farm.Ground) {
     logger.stupid(`each tile on tick`, each);
@@ -220,7 +218,7 @@ const tickOne = farm => {
     for (const each of farm.Ground) {
       switch (each.State) {
         case 'Fire':
-          each.State = 'Green';
+          each.State = TileState.Green;
           each.Value = 0;
           break;
       }
@@ -230,7 +228,7 @@ const tickOne = farm => {
   logger.stupid(`farm`, farm);
 };
 
-module.exports.tick = () => {
+export const tick = () => {
   for (const farm of Object.values(farms)) {
     tickOne(farm);
   }

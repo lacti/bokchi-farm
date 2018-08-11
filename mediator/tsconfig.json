@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "lib": ["es2017", "es7", "es6", "esnext", "dom"],
+    "moduleResolution": "node",
+    "noImplicitAny": true
+  },
+  "exclude": ["node_modules", ".build"]
+}
