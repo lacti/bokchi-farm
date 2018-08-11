@@ -1,16 +1,30 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as model from './model';
 
-class Tile extends React.Component {
-  constructor(props) {
-    super();
+interface TileProps {
+  x: number;
+  y: number;
+  state: model.TileState;
+  value: number;
+  onUpgrade: (x: number, y: number, value: number) => void;
+  onWater: (x: number, y: number) => void;
+}
+
+interface TileStates {
+  power: number;
+  value: number;
+}
+
+class Tile extends React.Component<TileProps, TileStates> {
+  constructor(props: TileProps) {
+    super(props);
     const { value } = props;
     this.state = {
       power: 0,
       value,
     };
   }
-  onClick = () => {
+  public onClick = () => {
     const { power, value } = this.state;
     if (power === 9) {
       const { x, y, state, onUpgrade, onWater } = this.props;
@@ -33,7 +47,7 @@ class Tile extends React.Component {
     }
   };
 
-  render() {
+  public render() {
     const { state } = this.props;
     const { value, power } = this.state;
     return (
@@ -43,14 +57,5 @@ class Tile extends React.Component {
     );
   }
 }
-
-Tile.propTypes = {
-  x: PropTypes.number.isRequired,
-  y: PropTypes.number.isRequired,
-  state: PropTypes.string.isRequired,
-  value: PropTypes.number.isRequired,
-  onUpgrade: PropTypes.func.isRequired,
-  onWater: PropTypes.func.isRequired,
-};
 
 export default Tile;

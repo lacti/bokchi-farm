@@ -1,20 +1,28 @@
-import React from 'react';
-import Tile from './Tile';
+import * as React from 'react';
 import './App.css';
+import { Farm } from './model';
+import Tile from './Tile';
 
 const apiBase =
   'https://ztpo29zqel.execute-api.ap-northeast-2.amazonaws.com/prod';
 const gameId = '00000000-0000-0000-0000000000000000';
 
-class App extends React.Component {
-  componentDidMount() {
+interface AppStates {
+  farm: Farm;
+}
+
+class App extends React.Component<{}, AppStates> {
+  private userId: string;
+  private age: number;
+
+  public componentDidMount() {
     this.initialize().then(async () => {
       this.tick();
       setInterval(() => this.tick(), 3000);
     });
   }
 
-  onUpgrade = (x, y, value) => {
+  public onUpgrade = (x: number, y: number, value: number) => {
     fetch(`${apiBase}/act/${gameId}/${this.userId}`, {
       method: 'POST',
       body: JSON.stringify({
@@ -28,7 +36,7 @@ class App extends React.Component {
       .then(window.console.log);
   };
 
-  onWater = (x, y) => {
+  public onWater = (x: number, y: number) => {
     fetch(`${apiBase}/act/${gameId}/${this.userId}`, {
       method: 'POST',
       body: JSON.stringify({
@@ -42,7 +50,7 @@ class App extends React.Component {
       .then(window.console.log);
   };
 
-  onFire = () => {
+  public onFire = () => {
     fetch(`${apiBase}/act/${gameId}/${this.userId}`, {
       method: 'POST',
       body: JSON.stringify({
@@ -53,7 +61,7 @@ class App extends React.Component {
       .then(window.console.log);
   };
 
-  async initialize() {
+  public async initialize() {
     const userIdInStorage = localStorage.getItem('bf_userid');
     if (!userIdInStorage) {
       const user = await fetch(`${apiBase}/start/${gameId}`, {
@@ -69,14 +77,14 @@ class App extends React.Component {
     this.age = -1;
   }
 
-  async fetchFarm() {
+  public async fetchFarm() {
     return fetch(`${apiBase}/see/${gameId}/${this.userId}`, {
       method: 'POST',
       body: JSON.stringify({ age: this.age }),
     }).then(r => r.json());
   }
 
-  async tick() {
+  public async tick() {
     const see = await this.fetchFarm();
     window.console.log(see);
     if (this.age === see.age) {
@@ -88,7 +96,7 @@ class App extends React.Component {
     });
   }
 
-  render() {
+  public render() {
     window.console.log(this.state);
     if (!this.state) {
       return <div />;
@@ -100,8 +108,7 @@ class App extends React.Component {
 
     window.console.log(farm);
     const tiles = [];
-    for (let index = 0; index < farm.Ground.length; index += 1) {
-      const each = farm.Ground[index];
+    for (const each of farm.Ground) {
       tiles.push(
         <Tile
           key={each.Y * 100 + each.X}
